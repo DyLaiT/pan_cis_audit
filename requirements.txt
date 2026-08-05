@@ -1,0 +1,2 @@
+lxml>=5.0.0     # XML 解析 + XPath + 行號(sourceline)
+pyyaml>=6.0     # checks/*.yaml 檢查定義

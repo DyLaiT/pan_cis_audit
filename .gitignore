@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+# 客戶設定檔絕不進 repo
+*.xml
+reports/
+*.local
