@@ -1,6 +1,10 @@
 __pycache__/
 *.pyc
-# 客戶設定檔絕不進 repo
-*.xml
 reports/
 *.local
+
+# 客戶設定檔絕不進 repo
+*.xml
+# 但放行 examples/ 下的去識別化教學範例
+!examples/
+!examples/*.xml

@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<!-- 去識別化範例 PAN-OS config，僅供 pan_cis_audit 示範。非真實設備。 -->
+<config version="10.2.0" detail-version="10.2.10">
+  <mgt-config>
+    <users>
+      <entry name="admin">
+        <phash>REDACTED_EXAMPLE</phash>
+        <permissions><role-based><superuser>yes</superuser></role-based></permissions>
+      </entry>
+    </users>
+    <password-complexity>
+      <enabled>yes</enabled>
+      <minimum-length>12</minimum-length>
+      <minimum-uppercase-letters>1</minimum-uppercase-letters>
+      <minimum-lowercase-letters>1</minimum-lowercase-letters>
+      <minimum-numeric-letters>1</minimum-numeric-letters>
+      <minimum-special-characters>1</minimum-special-characters>
+    </password-complexity>
+  </mgt-config>
+  <shared>
+    <log-settings><system><match-list>
+      <entry name="all-syslog"><filter>All Logs</filter><send-syslog><member>siem</member></send-syslog></entry>
+    </match-list></system></log-settings>
+  </shared>
+  <devices><entry name="localhost.localdomain">
+    <deviceconfig>
+      <system>
+        <login-banner>Authorized access only. Activity monitored.</login-banner>
+        <permitted-ip><entry name="10.0.0.0/8"/></permitted-ip>
+        <ntp-servers>
+          <primary-ntp-server><ntp-server-address>ntp1.example.local</ntp-server-address></primary-ntp-server>
+          <secondary-ntp-server><ntp-server-address>ntp2.example.local</ntp-server-address></secondary-ntp-server>
+        </ntp-servers>
+      </system>
+      <setting><management><idle-timeout>10</idle-timeout></management></setting>
+    </deviceconfig>
+  </entry></devices>
+</config>

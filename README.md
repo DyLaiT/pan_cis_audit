@@ -1,47 +1,84 @@
-# pan_cis_audit — Palo Alto PAN-OS 離線 CIS Benchmark 稽核
+# pan_cis_audit
 
-對匯出的 PAN-OS XML config 做離線 CIS Benchmark 檢查，無需連線設備、無需 panhandler 框架。
+**Offline CIS Benchmark auditor for Palo Alto PAN-OS — no live device, no panhandler.**
 
-## 為什麼做這個
+Audits an exported PAN-OS XML configuration against the CIS Palo Alto Firewall
+Benchmark. Runs fully offline against the config file — no API access to the
+firewall and no panhandler runtime required.
 
-官方 [PaloAltoNetworks/cis-benchmarks](https://github.com/PaloAltoNetworks/cis-benchmarks)（MIT）
-是權威來源，但：**已停止維護、需 panhandler runtime + live API 存取、僅支援 PAN-OS 9.x**。
+> 對匯出的 PAN-OS XML config 做離線 CIS Benchmark 稽核。不需連線設備、不需 panhandler 框架，
+> 只吃設定檔，適合「客戶只提供設定檔」的檢測情境。
 
-本工具改為：
-- **離線 XML 解析**——只吃匯出的 config，不連活設備（適合客戶只給設定檔的檢測情境）
-- **純 Python + lxml**——無框架依賴
-- **PAN-OS 10.x 相容**
-- 檢查項 XPath **移植自官方 skillet**（權威定義，非自行猜測）
+---
 
-## 用法
+## Why this exists / 為什麼做這個
+
+The official [PaloAltoNetworks/cis-benchmarks](https://github.com/PaloAltoNetworks/cis-benchmarks)
+(MIT) is the authoritative source, but it is **no longer maintained**, requires
+**panhandler + live API access**, and only targets **PAN-OS 9.x**.
+
+This tool instead:
+
+- **Offline XML** — reads the exported config, never touches a live device
+- **Pure Python + lxml** — no framework dependency
+- **PAN-OS 10.x compatible**
+- Check **XPath ported from the official skillet** (authoritative, not guessed)
+- **Secrets redacted** (IP / password / hostname) before any output — reports are safe to share
+
+> 官方 repo 已停維護、需 live API + panhandler、僅支援 9.x。本工具改為離線 XML、純 Python、
+> 支援 10.x，檢查項 XPath 移植自官方 skillet（權威定義），輸出前遮罩機敏值。
+
+---
+
+## Usage / 用法
 
 ```bash
 pip install -r requirements.txt
-python3 pan_cis_audit.py <config.xml>            # 文字報告
-python3 pan_cis_audit.py <config.xml> --md       # markdown 表格（可貼進報告）
-python3 pan_cis_audit.py <config.xml> --full     # 附證據行號
-python3 pan_cis_audit.py <config.xml> --section 1 # 只跑某 section
+
+python3 pan_cis_audit.py <config.xml>             # text report / 文字報告
+python3 pan_cis_audit.py <config.xml> --md        # markdown table / 表格（可貼進報告）
+python3 pan_cis_audit.py <config.xml> --full      # with evidence line numbers / 附證據行號
+python3 pan_cis_audit.py <config.xml> --section 1 # single section / 只跑某 section
 ```
 
-機敏值（IP/密碼/hostname）遮罩後才輸出，報告可交付。客戶 config 請放 gitignore 範圍外或本機，勿進 repo。
+See [`examples/sample_report.md`](examples/sample_report.md) for sample output,
+generated from [`examples/sample_config.xml`](examples/sample_config.xml) (de-identified).
 
-## 架構（資料驅動）
+---
 
-- `pan_cis_audit.py` — 引擎：跑 checks/*.yaml 的 XPath + 判斷式
-- `checks/*.yaml` — 檢查定義（一 section 一檔），XPath 移植自官方
-- 檢查類型：exists / absent / min / max / equals / manual
+## Architecture / 架構 (data-driven)
 
-新增檢查項只需編 YAML，不動引擎。
+- `pan_cis_audit.py` — engine: runs XPath + predicate defined in `checks/*.yaml`
+- `checks/*.yaml` — check definitions (one file per section), XPath ported from official skillet
+- Check types: `exists` / `absent` / `min` / `max` / `equals` / `manual`
 
-## 檢查項進度（對照官方 CIS v9.0 共 66 項）
+Adding a check = editing YAML, no engine change. / 新增檢查項只需編 YAML，不動引擎。
 
-- [x] Section 1 Device Setup（20 項：syslog/banner/permitted-ip/密碼複雜度9項/逾時/鎖定/SNMPv3/NTP）
-- [ ] Section 2 User-ID
-- [ ] Section 3 High Availability
-- [ ] Section 4 更新排程
-- [ ] Section 5 WildFire
-- [ ] Section 6 威脅防護 profile / Zone Protection
+---
 
-## 授權
+## Coverage / 檢查項進度
 
-MIT。檢查項定義參考官方 cis-benchmarks（MIT）。
+Against official CIS v9.0 (66 items):
+
+- [x] **Section 1 — Device Setup** (20 checks): syslog, login banner, permitted-IP,
+  9 password-complexity items, idle-timeout, account lockout, SNMPv3, NTP redundancy
+- [ ] Section 2 — User-ID
+- [ ] Section 3 — High Availability
+- [ ] Section 4 — Dynamic Updates
+- [ ] Section 5 — WildFire
+- [ ] Section 6 — Threat Prevention profiles / Zone Protection
+
+---
+
+## Notes / 說明
+
+- Some CIS items depend on runtime state not present in an exported config (e.g. live
+  TLS negotiation); these are marked `MANUAL` with the command to run on the device.
+- CIS is a general baseline. For an **internal L4 segmentation firewall**, some items
+  (login banner, browser cert) may be advisory rather than critical — interpret in context.
+- Customer configs must **not** be committed; `.gitignore` blocks `*.xml` except `examples/`.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Check definitions adapted from
+[PaloAltoNetworks/cis-benchmarks](https://github.com/PaloAltoNetworks/cis-benchmarks) (MIT).
