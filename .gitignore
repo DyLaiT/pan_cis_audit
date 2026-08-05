@@ -8,3 +8,4 @@ reports/
 # 但放行 examples/ 下的去識別化教學範例
 !examples/
 !examples/*.xml
+.python-version
