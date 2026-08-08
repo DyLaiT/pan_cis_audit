@@ -1,0 +1,109 @@
+# CIS Palo Alto Benchmark — Section 2-6（進階：User-ID/HA/更新/WildFire/威脅防護）
+# 務實原則（依官方 CIS↔TWGCB 對照 PDF 校準）：
+#   - 能從 XML 靜態判的（設定存在性/排程/HA）→ 寫 XPath 自動判
+#   - 官方標 Investigate(V) 的 profile 內容項 → 標 manual（需人工看 profile 細節，不硬做）
+# XPath 移植自官方 PaloAltoNetworks/cis-benchmarks skillet。
+checks:
+  # ===== Section 2: User-ID（官方多標 Investigate，需人工）=====
+  - id: "2.4"
+    name: "User-ID Include/Exclude Networks"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：若啟用 User-ID，需人工確認有設 Include/Exclude Networks（避免掃描外部）"
+
+  - id: "2.5"
+    name: "User-ID Agent 最小權限"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：User-ID service account 權限需人工檢視（不應有互動登入/遠端存取）"
+
+  # ===== Section 3: High Availability（可靜態判存在性）=====
+  - id: "3.1"
+    name: "HA 對等節點已設定"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/high-availability/enabled"
+    pass: "HA 已啟用"
+    fail: "未設定 HA（單機無容錯；若為刻意單機部署可視為 N/A）"
+
+  - id: "3.2"
+    name: "HA Link/Path Monitoring"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/high-availability/group/monitoring/link-monitoring"
+    pass: "HA 已設 Link Monitoring"
+    fail: "HA 未設 Link/Path Monitoring（故障偵測不足）"
+
+  # ===== Section 4: Dynamic Updates（可靜態判排程存在）=====
+  - id: "4.1"
+    name: "防毒更新排程（每小時）"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/system/update-schedule/anti-virus/recurring"
+    pass: "已設防毒更新排程"
+    fail: "未設防毒更新排程（TWGCB-03-005-0030；病毒碼過期）"
+
+  - id: "4.2"
+    name: "應用程式與威脅更新排程"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring"
+    pass: "已設威脅更新排程"
+    fail: "未設應用程式與威脅更新排程（TWGCB-03-005-0031）"
+
+  - id: "5.7"
+    name: "WildFire 更新排程"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/system/update-schedule/wildfire/recurring"
+    pass: "已設 WildFire 更新排程"
+    fail: "未設 WildFire 更新排程（TWGCB-03-005-0027）"
+
+  # ===== Section 5: WildFire（profile 內容多需人工）=====
+  - id: "5.3"
+    name: "所有安全政策啟用 WildFire 分析"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認每條 allow 政策綁 WildFire 分析設定檔（TWGCB-03-005-0026）"
+
+  # ===== Section 6: Threat Prevention profiles + Zone Protection =====
+  # profile「內容是否安全」需人工看（官方 V）；profile/zone「是否存在」可靜態判
+  - id: "6.16"
+    name: "Zone Protection Profile 存在（SYN Flood）"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/@name"
+    pass: "已定義 Zone Protection Profile"
+    fail: "未定義任何 Zone Protection Profile（TWGCB-03-005-0021~0023；無 DoS/偵查防護）"
+
+  - id: "6.1"
+    name: "防毒設定檔解碼器動作 block/reset"
+    level: 1
+    type: manual
+    detail: "官方標 Investigate：需人工確認 AV profile 各 decoder 動作為 block/reset-both（TWGCB-03-005-0028）"
+
+  - id: "6.2"
+    name: "所有政策套用安全防毒設定檔"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認每條相關政策綁安全 AV profile（TWGCB-03-005-0033）"
+
+  - id: "6.3"
+    name: "反間諜軟體設定檔阻擋"
+    level: 1
+    type: manual
+    detail: "官方標 Investigate：anti-spyware profile 特徵碼原則需人工檢視（TWGCB-03-005-0034）"
+
+  - id: "6.7"
+    name: "漏洞保護設定檔阻擋規則"
+    level: 1
+    type: manual
+    detail: "官方標 Investigate：vulnerability protection profile 阻擋 critical/high 需人工檢視（TWGCB-03-005-0037）"
+
+  - id: "6.11"
+    name: "URL 過濾 HTTP 標頭記錄"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-xff"
+    pass: "URL 過濾已啟用 HTTP 標頭記錄"
+    fail: "URL 過濾未啟用 HTTP 標頭記錄（TWGCB-03-005-0041）"
