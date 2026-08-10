@@ -101,6 +101,28 @@ def _ev(el):
     return f"L{ln}" if ln else ""
 
 
+def _parent_hint(tree, xp):
+    """未設定的項：逐層砍 XPath 末段，找到「存在的最近父節點」，回「補在 L<行號>（<父>下）」。
+    讓 FAIL(未設定) 也能定位該補在哪，而非只給 —。"""
+    # 去掉 text()/@attr 結尾
+    p = re.sub(r'/(text\(\)|@[\w-]+)$', '', xp)
+    while '/' in p.strip('/'):
+        p = p.rsplit('/', 1)[0]
+        if not p:
+            break
+        try:
+            r = tree.xpath(p)
+        except ET.XPathEvalError:
+            continue
+        if r and not isinstance(r[0], str):
+            el = r[0]
+            ln = getattr(el, 'sourceline', None)
+            leaf = p.rsplit('/', 1)[-1]
+            if ln:
+                return f"補在 L{ln}（<{leaf}> 下）"
+    return ""  # 連父都不存在 → 整段缺，無處可提示
+
+
 def run_check(tree, c):
     """依 check 定義（type + xpath + 條件）跑，回 (status, detail, evidence)。"""
     ctype = c.get("type", "exists")
@@ -112,7 +134,7 @@ def run_check(tree, c):
         val, el = xpath_first(tree, xp)
         if val is not None:
             return "PASS", c.get("pass", "已設定"), redact(f"L{el.sourceline}" if el is not None else val)
-        return "FAIL", c.get("fail", "未設定"), ""
+        return "FAIL", c.get("fail", "未設定"), _parent_hint(tree, xp)
 
     if ctype == "absent":
         # xpath 無結果 = PASS（該項不該存在，如 password-profile 不該有）
@@ -125,7 +147,7 @@ def run_check(tree, c):
         # 數值 ≥ threshold
         val, el = xpath_first(tree, xp)
         if val is None:
-            return "FAIL", c.get("fail_missing", "未設定"), ""
+            return "FAIL", c.get("fail_missing", "未設定"), _parent_hint(tree, xp)
         try:
             n = int(val)
         except ValueError:
@@ -139,7 +161,7 @@ def run_check(tree, c):
     if ctype == "max":
         val, el = xpath_first(tree, xp)
         if val is None:
-            return "FAIL", c.get("fail_missing", "未設定"), ""
+            return "FAIL", c.get("fail_missing", "未設定"), _parent_hint(tree, xp)
         try:
             n = int(val)
         except ValueError:
@@ -155,7 +177,7 @@ def run_check(tree, c):
         if val == want:
             return "PASS", c.get("pass", f"= {want}"), _ev(el)
         if val is None:
-            return "FAIL", c.get("fail_missing", "未設定"), ""
+            return "FAIL", c.get("fail_missing", "未設定"), _parent_hint(tree, xp)
         return "FAIL", c.get("fail", f"值為 {redact(val)}，期望 {want}"), _ev(el)
 
     if ctype == "manual":
