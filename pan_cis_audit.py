@@ -80,7 +80,9 @@ def xpath_first(tree, xp):
         return None, None
     item = r[0]
     if isinstance(item, str):
-        return item, None
+        # lxml text()/@attr 結果是 smart string，有 getparent() 可取行號
+        parent = item.getparent() if hasattr(item, 'getparent') else None
+        return str(item), parent
     # element
     return (item.text if item.text else item.get('name', '')), item
 
@@ -91,6 +93,12 @@ def xpath_list(tree, xp):
     except ET.XPathEvalError:
         return []
     return r
+
+
+def _ev(el):
+    """element → 證據字串（有行號回 L<行號>，無則空）。lxml element 有 .sourceline。"""
+    ln = getattr(el, 'sourceline', None) if el is not None else None
+    return f"L{ln}" if ln else ""
 
 
 def run_check(tree, c):
@@ -121,11 +129,12 @@ def run_check(tree, c):
         try:
             n = int(val)
         except ValueError:
-            return "MANUAL", f"值非數字: {redact(val)}", ""
+            return "MANUAL", f"值非數字: {redact(val)}", _ev(el)
         th = c.get("threshold", 0)
         if n >= th:
-            return "PASS", c.get("pass", f"{n} ≥ {th}"), ""
-        return "FAIL", c.get("fail", f"{n} < {th}"), ""
+            return "PASS", c.get("pass", f"{n} ≥ {th}"), _ev(el)
+        # 值不對的 FAIL 帶行號（有設定但不達標，可定位）
+        return "FAIL", c.get("fail", f"{n} < {th}"), _ev(el)
 
     if ctype == "max":
         val, el = xpath_first(tree, xp)
@@ -134,20 +143,20 @@ def run_check(tree, c):
         try:
             n = int(val)
         except ValueError:
-            return "MANUAL", f"值非數字: {redact(val)}", ""
+            return "MANUAL", f"值非數字: {redact(val)}", _ev(el)
         th = c.get("threshold", 0)
         if n <= th:
-            return "PASS", c.get("pass", f"{n} ≤ {th}"), ""
-        return "FAIL", c.get("fail", f"{n} > {th}"), ""
+            return "PASS", c.get("pass", f"{n} ≤ {th}"), _ev(el)
+        return "FAIL", c.get("fail", f"{n} > {th}"), _ev(el)
 
     if ctype == "equals":
         val, el = xpath_first(tree, xp)
         want = c.get("expected")
         if val == want:
-            return "PASS", c.get("pass", f"= {want}"), ""
+            return "PASS", c.get("pass", f"= {want}"), _ev(el)
         if val is None:
             return "FAIL", c.get("fail_missing", "未設定"), ""
-        return "FAIL", c.get("fail", f"值為 {redact(val)}，期望 {want}"), ""
+        return "FAIL", c.get("fail", f"值為 {redact(val)}，期望 {want}"), _ev(el)
 
     if ctype == "manual":
         return "MANUAL", c.get("detail", "需人工/登入設備確認"), ""
