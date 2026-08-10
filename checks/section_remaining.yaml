@@ -1,0 +1,212 @@
+# CIS Palo Alto Benchmark — 補齊剩餘 37 項（達完整 71 項）
+# 校準原則（依官方 CIS↔TWGCB 對照）：能從 XML 靜態判的寫 XPath；profile 內容/政策綁定/
+# User-ID/decryption 等官方標 Investigate 者標 manual（需人工看內容，不硬判）。
+checks:
+  # ---- Section 1 補 ----
+  - id: "1.1.1.2"
+    name: "SNMPv3 traps 已設定"
+    level: 1
+    type: exists
+    xpath: "/config/shared/log-settings/snmptrap/entry/version/v3"
+    pass: "SNMPv3 trap 已設定"
+    fail: "未設定 SNMPv3 traps（或用 v1/v2c 明文）"
+  - id: "1.2.2"
+    name: "管理設定檔 Permitted IP"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/network/profiles/interface-management-profile/entry/permitted-ip/entry/@name"
+    pass: "介面管理設定檔已限制來源 IP"
+    fail: "介面管理設定檔未設 Permitted IP"
+  - id: "1.2.4"
+    name: "管理設定檔停用 HTTP/Telnet"
+    level: 1
+    type: manual
+    detail: "需人工確認所有 interface-management-profile 的 http/telnet 未啟用"
+  - id: "1.6.1"
+    name: "驗證更新伺服器身分"
+    level: 1
+    type: equals
+    xpath: "/config/devices/entry/deviceconfig/system/server-verification/text()"
+    expected: "yes"
+    fail_missing: "未設定驗證更新伺服器身分（TWGCB-03-005-0019）"
+  - id: "1.6.3"
+    name: "遠端存取 VPN 憑證有效"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 VPN 憑證有效非自簽過期"
+
+  # ---- Section 2 User-ID（官方多標 Investigate，全人工）----
+  - id: "2.1"
+    name: "IP 對應使用者名稱"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：User-ID 的 IP-user 對應需人工確認"
+  - id: "2.2"
+    name: "停用 WMI probing"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：確認 User-ID 未啟用 WMI probing（易被濫用）"
+  - id: "2.3"
+    name: "User-ID 僅內部信任介面"
+    level: 2
+    type: manual
+    detail: "需人工確認 User-ID 只在內部信任 zone 啟用"
+  - id: "2.6"
+    name: "User-ID 服務帳號無互動登入"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需查 AD 端 User-ID service account 權限（XML 無此資訊）"
+  - id: "2.7"
+    name: "User-ID 帳號禁遠端存取"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需查 User-ID service account 遠端存取權（AD 端）"
+  - id: "2.8"
+    name: "安全政策限制 User-ID Agent 流量"
+    level: 2
+    type: manual
+    detail: "需人工確認政策限制 User-ID Agent 不跨入不信任 zone"
+
+  # ---- Section 3 HA 補 ----
+  - id: "3.3"
+    name: "HA Passive Link State / Preemptive"
+    level: 2
+    type: manual
+    detail: "需人工確認 HA passive-link-state=auto、preemptive 設定適當"
+
+  # ---- Section 5 WildFire 補（多內容項，人工）----
+  - id: "5.1"
+    name: "WildFire 檔案大小上限最大化"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需比對 WildFire file-size 各類型是否設到建議上限"
+  - id: "5.2"
+    name: "WildFire 轉送所有應用/檔案類型"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 WildFire 分析設定檔涵蓋所有 app/file-type"
+  - id: "5.4"
+    name: "解密內容轉送 WildFire"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/setting/wildfire/report-grayware-file"
+    pass: "WildFire 相關設定存在"
+    fail: "未設定解密內容轉送 WildFire（需確認）"
+  - id: "5.5"
+    name: "WildFire session 資訊全啟用"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 WildFire session-information 各項啟用"
+  - id: "5.6"
+    name: "WildFire 惡意檔告警"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認惡意檔偵測告警已啟用"
+
+  # ---- Section 6 威脅防護補（內容項多人工）----
+  - id: "6.4"
+    name: "反間諜 DNS Sinkhole"
+    level: 1
+    type: manual
+    detail: "需人工確認 anti-spyware profile 啟用 DNS sinkholing（TWGCB-03-005-0035）"
+  - id: "6.5"
+    name: "反間諜被動 DNS 監控"
+    level: 2
+    type: manual
+    detail: "需人工確認 anti-spyware profile 啟用 passive DNS"
+  - id: "6.6"
+    name: "對外政策套用反間諜設定檔"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認對網際網路政策綁安全 anti-spyware profile（TWGCB-03-005-0036）"
+  - id: "6.8"
+    name: "所有政策套用漏洞保護設定檔"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認每條政策綁安全 vulnerability profile（TWGCB-03-005-0038）"
+  - id: "6.9"
+    name: "使用 PAN-DB URL Filtering"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 URL filtering 用 PAN-DB"
+  - id: "6.10"
+    name: "URL 過濾 block/override 分類"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 URL 分類動作為 block/override"
+  - id: "6.12"
+    name: "URL 過濾內嵌分類"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/cloud-inline-cat"
+    pass: "URL 過濾已啟用內嵌分類"
+    fail: "URL 過濾未啟用內嵌分類（TWGCB-03-005-0042）"
+  - id: "6.13"
+    name: "對外政策啟用安全 URL 過濾"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認對網際網路政策綁 URL filtering（TWGCB-03-005-0043）"
+  - id: "6.14"
+    name: "信用卡/SSN 門檻告警"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 Data Filtering 信用卡/SSN 告警門檻"
+  - id: "6.15"
+    name: "對外政策套用 Data Filtering"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認對網際網路政策綁 Data Filtering profile"
+  - id: "6.17"
+    name: "Zone Protection Flood 調校"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 zone protection 各 flood type 門檻已調校（TWGCB-03-005-0021）"
+  - id: "6.18"
+    name: "Zone Protection 偵查保護"
+    level: 2
+    type: manual
+    detail: "需人工確認所有 zone 啟用 reconnaissance protection（TWGCB-03-005-0022）"
+  - id: "6.19"
+    name: "Zone Protection 丟棄異常封包"
+    level: 2
+    type: manual
+    detail: "需人工確認所有 zone 啟用 packet-based attack protection（TWGCB-03-005-0023）"
+  - id: "6.20"
+    name: "使用者憑證提交 block/continue"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認 URL filtering 的 credential submission 動作"
+
+  # ---- Section 7 安全政策 ----
+  - id: "7.1"
+    name: "允許政策有 application 管制"
+    level: 2
+    type: manual
+    detail: "需人工/交叉 pan_audit：allow 政策應限定 application（非 any）"
+  - id: "7.2"
+    name: "政策 Service 非 ANY"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：對外政策 service 不應為 any（TWGCB-03-005-0024；交叉 pan_audit 5.1）"
+  - id: "7.3"
+    name: "有拒絕惡意 IP 的政策"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認有 deny 已知惡意 IP 的政策"
+
+  # ---- Section 8 Decryption（全需人工）----
+  - id: "8.1"
+    name: "SSL Forward Proxy 政策"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認對外流量有 SSL Forward Proxy 解密政策"
+  - id: "8.2"
+    name: "SSL Inbound Inspection"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認對內部伺服器有 SSL Inbound Inspection"
+  - id: "8.3"
+    name: "解密憑證有效"
+    level: 2
+    type: manual
+    detail: "官方標 Investigate：需人工確認解密用憑證有效"

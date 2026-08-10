@@ -58,12 +58,12 @@ Adding a check = editing YAML, no engine change. / 新增檢查項只需編 YAML
 
 ## Coverage / 檢查項進度
 
-Against official CIS v9.0 (66 items) — 34 checks implemented:
+Against official CIS v9.0 — **all 71 checks implemented** (31 auto-decidable + 40 marked MANUAL per official Investigate flag):
 
 - [x] **Section 1 — Device Setup** (20 checks): syslog, login banner, permitted-IP,
   9 password-complexity items, idle-timeout, account lockout, SNMPv3, NTP redundancy
-- [x] **Section 2-6 — Advanced** (14 checks): User-ID, HA, dynamic-update schedules,
-  WildFire, threat-prevention profiles, zone protection
+- [x] **Section 2-8 — Advanced** (51 checks): User-ID, HA, dynamic-updates, WildFire,
+  threat-prevention profiles, zone protection, security policy, SSL decryption
 
 **Auto vs. manual policy**: per the official CIS↔TWGCB cross-reference, items the
 baseline marks "Investigate" (profile *content* checks — AV/anti-spyware/vulnerability
