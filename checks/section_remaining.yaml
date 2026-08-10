@@ -210,3 +210,12 @@ checks:
     level: 2
     type: manual
     detail: "官方標 Investigate：需人工確認解密用憑證有效"
+
+  # ---- 7.4 補（built-in default security policy logging）----
+  - id: "7.4"
+    name: "內建預設政策啟用記錄"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/rulebase/default-security-rules/rules/entry[@name='interzone-default']/log-end[text()='yes'] | /config/devices/entry/vsys/entry/rulebase/default-security-rules/rules/entry/log-setting"
+    pass: "內建預設政策(interzone/intrazone-default)已啟用記錄"
+    fail: "內建預設政策未啟用記錄（log-end/log-setting）——被 default 規則處理的流量無日誌（TWGCB-03-005-0025 相關）"
