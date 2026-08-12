@@ -37,7 +37,7 @@ checks:
   # ===== Section 4: Dynamic Updates（可靜態判排程存在）=====
   - id: "4.1"
     simple: true
-    name: "Antivirus Update Schedule set to Hourly（防毒更新排程：每小時）"
+    name: "Ensure Antivirus Update Schedule is set to Hourly（防毒更新排程：每小時）"
     level: 1
     type: exists
     xpath: "/config/devices/entry/deviceconfig/system/update-schedule/anti-virus/recurring"
@@ -46,7 +46,7 @@ checks:
 
   - id: "4.2"
     simple: true
-    name: "Applications and Threats Update Schedule set to Daily（應用程式與威脅更新排程：每日）"
+    name: "Ensure Applications and Threats Update Schedule is set to Daily（應用程式與威脅更新排程：每日）"
     level: 1
     type: exists
     xpath: "/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring"
@@ -83,7 +83,7 @@ checks:
   # 內容細節（每 decoder action）標於 fail 提示人工複核。
   - id: "6.1"
     simple: true
-    name: "Antivirus profiles set to reset-both"
+    name: "Ensure antivirus profiles are set to reset-both"
     level: 1
     type: exists
     xpath: "/config/devices/entry/vsys/entry/profiles/virus/entry/@name"
@@ -92,7 +92,7 @@ checks:
 
   - id: "6.2"
     simple: true
-    name: "Secure antivirus profile applied to security policies"
+    name: "Ensure a secure antivirus profile is applied to security policies"
     level: 2
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/virus/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
@@ -101,7 +101,7 @@ checks:
 
   - id: "6.3"
     simple: true
-    name: "Anti-spyware profile configured to block"
+    name: "Ensure an anti-spyware profile is configured to block"
     level: 1
     type: exists
     xpath: "/config/devices/entry/vsys/entry/profiles/spyware/entry/@name"
@@ -112,7 +112,7 @@ checks:
   # 舊版此號為 anti-spyware policy binding，勿混淆）
   - id: "6.6"
     simple: true
-    name: "Vulnerability Protection Profile set to block"
+    name: "Ensure a Vulnerability Protection Profile is set to block"
     level: 1
     type: exists
     xpath: "/config/devices/entry/vsys/entry/profiles/vulnerability/entry/@name"
@@ -121,7 +121,7 @@ checks:
 
   - id: "6.7"
     simple: true
-    name: "Secure Vulnerability Protection Profile applied"
+    name: "Ensure a secure Vulnerability Protection Profile is applied"
     level: 1
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/vulnerability/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
@@ -131,7 +131,7 @@ checks:
   # CIS 6.11 all HTTP Header Logging options enabled
   - id: "6.11"
     simple: true
-    name: "All HTTP Header Logging options enabled"
+    name: "Ensure all HTTP Header Logging options are enabled"
     level: 2
     type: exists
     xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-xff | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-user-agent | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-referer"
