@@ -39,6 +39,7 @@ python3 pan_cis_audit.py <config.xml>             # text report / 文字報告
 python3 pan_cis_audit.py <config.xml> --md        # markdown table / 表格（可貼進報告）
 python3 pan_cis_audit.py <config.xml> --full      # with evidence line numbers / 附證據行號
 python3 pan_cis_audit.py <config.xml> --section 1 # single section / 只跑某 section
+python3 pan_cis_audit.py <config.xml> --simple    # curated subset / 只跑精簡子集
 ```
 
 See [`examples/sample_report.md`](examples/sample_report.md) for sample output,
@@ -53,6 +54,15 @@ generated from [`examples/sample_config.xml`](examples/sample_config.xml) (de-id
 - Check types: `exists` / `absent` / `min` / `max` / `equals` / `manual`
 
 Adding a check = editing YAML, no engine change. / 新增檢查項只需編 YAML，不動引擎。
+
+### `--simple` — curated subset / 精簡子集
+
+`--simple` runs only the checks flagged `simple: true` in the YAML — a curated,
+mostly statically-decidable subset for a quick pass, rather than the full benchmark.
+Flag any check as part of the subset by adding `simple: true` to its YAML entry.
+
+> `--simple` 只跑 YAML 中標記 `simple: true` 的檢查項——一組偏靜態可判、可快速過一遍的
+> 精簡子集。要納入子集，在該 check 加 `simple: true` 即可。
 
 ---
 

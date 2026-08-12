@@ -36,6 +36,7 @@ checks:
 
   # ===== Section 4: Dynamic Updates（可靜態判排程存在）=====
   - id: "4.1"
+    simple: true
     name: "防毒更新排程（每小時）"
     level: 1
     type: exists
@@ -44,6 +45,7 @@ checks:
     fail: "未設防毒更新排程（TWGCB-03-005-0030；病毒碼過期）"
 
   - id: "4.2"
+    simple: true
     name: "應用程式與威脅更新排程"
     level: 1
     type: exists
@@ -76,34 +78,62 @@ checks:
     pass: "已定義 Zone Protection Profile"
     fail: "未定義任何 Zone Protection Profile（TWGCB-03-005-0021~0023；無 DoS/偵查防護）"
 
+  # CIS 6.1 antivirus profiles set to reset-both — 靜態可判：AV profile 存在即為前提，
+  # decoder 動作是否全 reset-both 需逐 decoder 看，此處判「有無自訂 AV profile」，
+  # 內容細節（每 decoder action）標於 fail 提示人工複核。
   - id: "6.1"
-    name: "防毒設定檔解碼器動作 block/reset"
+    simple: true
+    name: "Antivirus profiles set to reset-both"
     level: 1
-    type: manual
-    detail: "官方標 Investigate：需人工確認 AV profile 各 decoder 動作為 block/reset-both（TWGCB-03-005-0028）"
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/virus/entry/@name"
+    pass: "已定義自訂 antivirus profile（請確認各 decoder 動作為 reset-both）"
+    fail: "未定義自訂 antivirus profile（僅用預設，decoder 動作未強制 reset-both）"
 
   - id: "6.2"
-    name: "所有政策套用安全防毒設定檔"
-    level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認每條相關政策綁安全 AV profile（TWGCB-03-005-0033）"
-
-  - id: "6.3"
-    name: "反間諜軟體設定檔阻擋"
-    level: 1
-    type: manual
-    detail: "官方標 Investigate：anti-spyware profile 特徵碼原則需人工檢視（TWGCB-03-005-0034）"
-
-  - id: "6.7"
-    name: "漏洞保護設定檔阻擋規則"
-    level: 1
-    type: manual
-    detail: "官方標 Investigate：vulnerability protection profile 阻擋 critical/high 需人工檢視（TWGCB-03-005-0037）"
-
-  - id: "6.11"
-    name: "URL 過濾 HTTP 標頭記錄"
+    simple: true
+    name: "Secure antivirus profile applied to security policies"
     level: 2
     type: exists
-    xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-xff"
-    pass: "URL 過濾已啟用 HTTP 標頭記錄"
-    fail: "URL 過濾未啟用 HTTP 標頭記錄（TWGCB-03-005-0041）"
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/virus/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
+    pass: "安全政策已綁定 antivirus profile（或 profile group）"
+    fail: "無任何安全政策綁定 antivirus profile —— 流量未經防毒檢查"
+
+  - id: "6.3"
+    simple: true
+    name: "Anti-spyware profile configured to block"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/spyware/entry/@name"
+    pass: "已定義自訂 anti-spyware profile（請確認嚴重性規則動作為 block/reset）"
+    fail: "未定義自訂 anti-spyware profile（僅用預設，未強制 block）"
+
+  # CIS 6.6 Vulnerability Protection Profile set to block（注意：此為 NICS/新版 CIS 編號，
+  # 舊版此號為 anti-spyware policy binding，勿混淆）
+  - id: "6.6"
+    simple: true
+    name: "Vulnerability Protection Profile set to block"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/vulnerability/entry/@name"
+    pass: "已定義自訂 vulnerability protection profile（請確認 critical/high 動作為 block/reset）"
+    fail: "未定義自訂 vulnerability protection profile（僅用預設，未強制 block）"
+
+  - id: "6.7"
+    simple: true
+    name: "Secure Vulnerability Protection Profile applied"
+    level: 1
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/vulnerability/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
+    pass: "安全政策已綁定 vulnerability protection profile（或 profile group）"
+    fail: "無任何安全政策綁定 vulnerability protection profile —— 漏洞攻擊未被阻擋"
+
+  # CIS 6.11 all HTTP Header Logging options enabled
+  - id: "6.11"
+    simple: true
+    name: "All HTTP Header Logging options enabled"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-xff | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-user-agent | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-referer"
+    pass: "URL filtering profile 已啟用 HTTP header logging（XFF/User-Agent/Referer）"
+    fail: "URL filtering profile 未啟用 HTTP header logging 選項（TWGCB-03-005-0041）"

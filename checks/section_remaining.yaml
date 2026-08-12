@@ -11,6 +11,7 @@ checks:
     pass: "SNMPv3 trap 已設定"
     fail: "未設定 SNMPv3 traps（或用 v1/v2c 明文）"
   - id: "1.2.2"
+    simple: true
     name: "管理設定檔 Permitted IP"
     level: 1
     type: exists
@@ -18,11 +19,13 @@ checks:
     pass: "介面管理設定檔已限制來源 IP"
     fail: "介面管理設定檔未設 Permitted IP"
   - id: "1.2.4"
+    simple: true
     name: "管理設定檔停用 HTTP/Telnet"
     level: 1
     type: manual
     detail: "需人工確認所有 interface-management-profile 的 http/telnet 未啟用"
   - id: "1.6.1"
+    simple: true
     name: "驗證更新伺服器身分"
     level: 1
     type: equals
@@ -80,11 +83,15 @@ checks:
     level: 2
     type: manual
     detail: "官方標 Investigate：需比對 WildFire file-size 各類型是否設到建議上限"
+  # CIS 5.2 WildFire Analysis profile enabled for all security policies
   - id: "5.2"
-    name: "WildFire 轉送所有應用/檔案類型"
+    simple: true
+    name: "WildFire Analysis profile enabled for all security policies"
     level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認 WildFire 分析設定檔涵蓋所有 app/file-type"
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/wildfire-analysis/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
+    pass: "安全政策已綁定 WildFire Analysis profile（或 profile group）"
+    fail: "無任何安全政策綁定 WildFire Analysis profile —— 未知檔案未送 WildFire 分析"
   - id: "5.4"
     name: "解密內容轉送 WildFire"
     level: 2
@@ -97,28 +104,42 @@ checks:
     level: 2
     type: manual
     detail: "官方標 Investigate：需人工確認 WildFire session-information 各項啟用"
+  # CIS 5.6 WildFire Update Schedule set to Real-time（real-time 為空元素，存在即啟用）
   - id: "5.6"
-    name: "WildFire 惡意檔告警"
+    simple: true
+    name: "WildFire Update Schedule set to Real-time"
     level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認惡意檔偵測告警已啟用"
+    type: exists
+    xpath: "/config/devices/entry/deviceconfig/system/update-schedule/wildfire/recurring/real-time"
+    pass: "WildFire 更新排程設為 real-time"
+    fail: "WildFire 更新排程未設為 real-time（非即時更新，威脅情資延遲）"
 
   # ---- Section 6 威脅防護補（內容項多人工）----
+  # CIS 6.4 DNS sinkholing configured on anti-spyware profiles
   - id: "6.4"
-    name: "反間諜 DNS Sinkhole"
+    simple: true
+    name: "DNS sinkholing configured on anti-spyware profiles"
     level: 1
-    type: manual
-    detail: "需人工確認 anti-spyware profile 啟用 DNS sinkholing（TWGCB-03-005-0035）"
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/profiles/spyware/entry/botnet-domains/sinkhole/ipv4-address | /config/devices/entry/vsys/entry/profiles/spyware/entry/botnet-domains/sinkhole/ipv6-address"
+    pass: "anti-spyware profile 已設定 DNS sinkhole IP"
+    fail: "anti-spyware profile 未設定 DNS sinkholing（TWGCB-03-005-0035）"
+  # CIS 6.5 secure anti-spyware profile applied
   - id: "6.5"
-    name: "反間諜被動 DNS 監控"
+    simple: true
+    name: "Secure anti-spyware profile applied"
+    level: 2
+    type: exists
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/spyware/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
+    pass: "安全政策已綁定 anti-spyware profile（或 profile group）"
+    fail: "無任何安全政策綁定 anti-spyware profile —— 間諜軟體/C2 未被偵測"
+  # 舊版 6.6（anti-spyware policy binding）已由新版 6.5 涵蓋；新版 6.6 = Vulnerability
+  # Protection set to block，定義於 section2to6_advanced.yaml。此處不重複標 simple。
+  - id: "6.6-legacy"
+    name: "（舊編號）對外政策套用反間諜設定檔"
     level: 2
     type: manual
-    detail: "需人工確認 anti-spyware profile 啟用 passive DNS"
-  - id: "6.6"
-    name: "對外政策套用反間諜設定檔"
-    level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認對網際網路政策綁安全 anti-spyware profile（TWGCB-03-005-0036）"
+    detail: "此為舊版 CIS 6.6，新版對應 6.5（secure anti-spyware applied）；保留供對照，不列入 --simple"
   - id: "6.8"
     name: "所有政策套用漏洞保護設定檔"
     level: 2
@@ -134,13 +155,15 @@ checks:
     level: 2
     type: manual
     detail: "官方標 Investigate：需人工確認 URL 分類動作為 block/override"
+  # CIS 6.12 secure URL filtering enabled（政策綁 URL filtering profile）
   - id: "6.12"
-    name: "URL 過濾內嵌分類"
+    simple: true
+    name: "Secure URL filtering enabled"
     level: 2
     type: exists
-    xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/cloud-inline-cat"
-    pass: "URL 過濾已啟用內嵌分類"
-    fail: "URL 過濾未啟用內嵌分類（TWGCB-03-005-0042）"
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/url-filtering/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
+    pass: "安全政策已綁定 URL filtering profile（或 profile group）"
+    fail: "無任何安全政策綁定 URL filtering profile —— 惡意/不當網址未被過濾"
   - id: "6.13"
     name: "對外政策啟用安全 URL 過濾"
     level: 2
@@ -151,21 +174,33 @@ checks:
     level: 2
     type: manual
     detail: "官方標 Investigate：需人工確認 Data Filtering 信用卡/SSN 告警門檻"
+  # CIS 6.15 SYN Flood Action of SYN Cookies attached（zone protection 的 tcp-syn 動作為 syn-cookies）
   - id: "6.15"
-    name: "對外政策套用 Data Filtering"
+    simple: true
+    name: "SYN Flood Action of SYN Cookies attached"
     level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認對網際網路政策綁 Data Filtering profile"
+    type: exists
+    xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/flood/tcp-syn/syn-cookies"
+    pass: "Zone Protection 的 SYN Flood 動作設為 SYN Cookies"
+    fail: "SYN Flood 動作未設為 SYN Cookies（多為 RED；SYN Cookies 較能抗偽造來源 SYN 洪水）"
+  # CIS 6.17 zones have Zone Protection Profiles with Reconnaissance Protection
   - id: "6.17"
-    name: "Zone Protection Flood 調校"
+    simple: true
+    name: "Zone Protection Profiles with Reconnaissance Protection"
     level: 2
-    type: manual
-    detail: "官方標 Investigate：需人工確認 zone protection 各 flood type 門檻已調校（TWGCB-03-005-0021）"
+    type: exists
+    xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/scan/entry"
+    pass: "Zone Protection Profile 已設定 Reconnaissance Protection（scan）"
+    fail: "Zone Protection Profile 未設定偵查保護（port/host scan 偵測，TWGCB-03-005-0022）"
+  # CIS 6.18 zones have Zone Protection Profiles that drop specially crafted packets
   - id: "6.18"
-    name: "Zone Protection 偵查保護"
+    simple: true
+    name: "Zone Protection Profiles drop specially crafted packets"
     level: 2
-    type: manual
-    detail: "需人工確認所有 zone 啟用 reconnaissance protection（TWGCB-03-005-0022）"
+    type: exists
+    xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/packet-based-attack-protection"
+    pass: "Zone Protection Profile 已設定丟棄異常封包（packet-based-attack-protection）"
+    fail: "Zone Protection Profile 未設定丟棄特製異常封包（TWGCB-03-005-0023）"
   - id: "6.19"
     name: "Zone Protection 丟棄異常封包"
     level: 2
@@ -183,11 +218,16 @@ checks:
     level: 2
     type: manual
     detail: "需人工/交叉 pan_audit：allow 政策應限定 application（非 any）"
+  # CIS 7.2 Service setting of ANY in a security policy does not exist
+  # absent：允許(allow)政策中 service=any 者不應存在。命中即 FAIL（過度寬鬆）。
   - id: "7.2"
-    name: "政策 Service 非 ANY"
+    simple: true
+    name: "Service setting of ANY in a security policy does not exist"
     level: 2
-    type: manual
-    detail: "官方標 Investigate：對外政策 service 不應為 any（TWGCB-03-005-0024；交叉 pan_audit 5.1）"
+    type: absent
+    xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry[action='allow']/service/member[text()='any']"
+    pass: "無 allow 政策使用 service=any"
+    fail: "存在 allow 政策 service=any（過度寬鬆，未限定服務埠；TWGCB-03-005-0024）"
   - id: "7.3"
     name: "有拒絕惡意 IP 的政策"
     level: 2
@@ -213,6 +253,7 @@ checks:
 
   # ---- 7.4 補（built-in default security policy logging）----
   - id: "7.4"
+    simple: true
     name: "內建預設政策啟用記錄"
     level: 2
     type: exists

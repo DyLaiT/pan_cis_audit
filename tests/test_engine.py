@@ -96,6 +96,23 @@ def test_redact_password():
     assert "REDACTED" in redact("password: hunter2")
 
 
+# ---- --simple 子集 ----
+def test_simple_subset_is_marked():
+    from pan_cis_audit import load_checks
+    simple = load_checks(simple=True)
+    allc = load_checks()
+    # simple 子集非空、且都帶 simple: true 標記、且為全集的真子集
+    assert len(simple) > 0
+    assert all(c.get("simple") for c in simple)
+    assert len(simple) < len(allc)
+
+
+def test_simple_ids_unique():
+    from pan_cis_audit import load_checks
+    ids = [c["id"] for c in load_checks(simple=True)]
+    assert len(ids) == len(set(ids)), "simple 子集 id 應唯一（無重複標記）"
+
+
 if __name__ == "__main__":
     # 無 pytest 也能跑
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]

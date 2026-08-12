@@ -57,15 +57,19 @@ def load_config(path):
         sys.exit(f"XML 解析失敗: {e}")
 
 
-def load_checks(section=None):
+def load_checks(section=None, simple=False):
     checks = []
     for f in sorted(glob.glob(os.path.join(CHECKS_DIR, "*.yaml"))):
         data = yaml.safe_load(open(f, encoding="utf-8")) or {}
         for c in data.get("checks", []):
             if section and not str(c.get("id", "")).startswith(str(section)):
                 continue
+            # --simple：只跑標記 simple: true 的精簡子集
+            if simple and not c.get("simple"):
+                continue
             checks.append(c)
-    checks.sort(key=lambda c: [int(x) if x.isdigit() else x
+    # 排序鍵統一為 (數字, 字串) tuple，避免 int 與 str 混比（如 "6.6-legacy" 的非數字段）
+    checks.sort(key=lambda c: [(int(x), "") if x.isdigit() else (1 << 30, x)
                                for x in re.split(r'\.', str(c.get("id", "0")))])
     return checks
 
@@ -225,10 +229,12 @@ def main():
     ap.add_argument("--md", action="store_true", help="markdown 表格輸出")
     ap.add_argument("--full", action="store_true", help="附證據行號")
     ap.add_argument("--section", help="只跑指定 section（如 1）")
+    ap.add_argument("--simple", action="store_true",
+                    help="只跑精簡子集（標記 simple: true 的檢查項）")
     args = ap.parse_args()
 
     tree = load_config(args.config)
-    checks = load_checks(args.section)
+    checks = load_checks(args.section, simple=args.simple)
     if not checks:
         sys.exit("checks/ 無檢查定義，或 section 過濾後為空")
     rows = []
