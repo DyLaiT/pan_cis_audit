@@ -37,7 +37,7 @@ checks:
   # ===== Section 4: Dynamic Updates（可靜態判排程存在）=====
   - id: "4.1"
     simple: true
-    name: "防毒更新排程（每小時）"
+    name: "Antivirus Update Schedule set to Hourly（防毒更新排程：每小時）"
     level: 1
     type: exists
     xpath: "/config/devices/entry/deviceconfig/system/update-schedule/anti-virus/recurring"
@@ -46,7 +46,7 @@ checks:
 
   - id: "4.2"
     simple: true
-    name: "應用程式與威脅更新排程"
+    name: "Applications and Threats Update Schedule set to Daily（應用程式與威脅更新排程：每日）"
     level: 1
     type: exists
     xpath: "/config/devices/entry/deviceconfig/system/update-schedule/threats/recurring"

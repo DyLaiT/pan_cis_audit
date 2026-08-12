@@ -12,7 +12,7 @@ checks:
     fail: "未設定 SNMPv3 traps（或用 v1/v2c 明文）"
   - id: "1.2.2"
     simple: true
-    name: "管理設定檔 Permitted IP"
+    name: "Permitted IP Addresses set for all management profiles（管理設定檔 Permitted IP）"
     level: 1
     type: exists
     xpath: "/config/devices/entry/network/profiles/interface-management-profile/entry/permitted-ip/entry/@name"
@@ -20,13 +20,13 @@ checks:
     fail: "介面管理設定檔未設 Permitted IP"
   - id: "1.2.4"
     simple: true
-    name: "管理設定檔停用 HTTP/Telnet"
+    name: "HTTP and Telnet disabled for all management profiles（管理設定檔停用 HTTP/Telnet）"
     level: 1
     type: manual
     detail: "需人工確認所有 interface-management-profile 的 http/telnet 未啟用"
   - id: "1.6.1"
     simple: true
-    name: "驗證更新伺服器身分"
+    name: "Verify Update Server Identity enabled（驗證更新伺服器身分）"
     level: 1
     type: equals
     xpath: "/config/devices/entry/deviceconfig/system/server-verification/text()"
@@ -254,7 +254,7 @@ checks:
   # ---- 7.4 補（built-in default security policy logging）----
   - id: "7.4"
     simple: true
-    name: "內建預設政策啟用記錄"
+    name: "Logging enabled on built-in default security policies（內建預設政策啟用記錄）"
     level: 2
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/default-security-rules/rules/entry[@name='interzone-default']/log-end[text()='yes'] | /config/devices/entry/vsys/entry/rulebase/default-security-rules/rules/entry/log-setting"
