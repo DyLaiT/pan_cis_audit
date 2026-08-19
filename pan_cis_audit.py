@@ -127,7 +127,46 @@ def _parent_hint(tree, xp):
     return ""  # 連父都不存在 → 整段缺，無處可提示
 
 
+def _mitigation(tree, c):
+    """補償控制：某項不合規時，檢查是否有其他措施降低風險，回附註字串。
+
+    實務場景：CIS 要求停用管理介面 HTTP/Telnet，但受稽單位可能改以「限制來源 IP」
+    達成等效防護。純看該項會判成純風險，忽略了實際已有的補償控制。此函式讓 YAML 能
+    宣告 `mitigation.xpath`，命中時在說明後附註，供報告與稽核人員判讀。
+
+    注意：補償控制**不改變** PASS/FAIL 判定（CIS 條文仍未滿足），只補充脈絡。
+    """
+    m = c.get("mitigation")
+    if not m:
+        return ""
+    xp = m.get("xpath", "")
+    if not xp:
+        return ""
+    if xpath_list(tree, xp):
+        return m.get("found", "已有補償控制")
+    return m.get("missing", "")
+
+
 def run_check(tree, c):
+    """依 check 定義跑檢查，回 (status, detail, evidence)。
+
+    在核心判斷之上疊加兩種判讀附註（僅非 PASS 項需要，PASS 已合規）：
+      - `note`：無條件附加的判讀脈絡（如「UI 可能因 PAN-OS 預設而顯示為已設定」）
+      - `mitigation`：條件式，補償控制 XPath 命中才附加（見 _mitigation）
+    兩者皆**不改變** PASS/FAIL 判定，只補充報告可讀性。
+    """
+    st, detail, ev = _run_check_core(tree, c)
+    if st != "PASS":
+        note = c.get("note")
+        if note:
+            detail = f"{detail}｜註：{note}"
+        mit = _mitigation(tree, c)
+        if mit:
+            detail = f"{detail}｜補償控制：{mit}"
+    return st, detail, ev
+
+
+def _run_check_core(tree, c):
     """依 check 定義（type + xpath + 條件）跑，回 (status, detail, evidence)。"""
     ctype = c.get("type", "exists")
     xp = c.get("xpath", "")
@@ -183,6 +222,18 @@ def run_check(tree, c):
         if val is None:
             return "FAIL", c.get("fail_missing", "未設定"), _parent_hint(tree, xp)
         return "FAIL", c.get("fail", f"值為 {redact(val)}，期望 {want}"), _ev(el)
+
+    if ctype == "not_equals":
+        # 「預設即啟用」型欄位：PAN-OS 部分設定未顯式寫入 XML 時維持預設啟用，
+        # 只有顯式設成停用值（通常 "no"）才算不合規。官方 skillet 用 != 'no' 判斷，
+        # 若沿用 equals=="yes" 會把「未設定=預設啟用」誤判為 FAIL。
+        val, el = xpath_first(tree, xp)
+        bad = c.get("unexpected")
+        if val is None:
+            return "PASS", c.get("pass_missing", f"未顯式設定（預設非 {bad}，視為合規）"), ""
+        if val == bad:
+            return "FAIL", c.get("fail", f"值為 {redact(val)}（停用）"), _ev(el)
+        return "PASS", c.get("pass", f"= {redact(val)}"), _ev(el)
 
     if ctype == "manual":
         return "MANUAL", c.get("detail", "需人工/登入設備確認"), ""

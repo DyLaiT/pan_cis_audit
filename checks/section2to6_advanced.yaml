@@ -89,6 +89,8 @@ checks:
     xpath: "/config/devices/entry/vsys/entry/profiles/virus/entry/@name"
     pass: "已定義自訂 antivirus profile（請確認各 decoder 動作為 reset-both）"
     fail: "未定義自訂 antivirus profile（僅用預設，decoder 動作未強制 reset-both）"
+    # UI 上 predefined profile 一直存在，稽核時易被當成「已設定」。
+    note: "PAN-OS 內建 predefined profile（default/strict）在 UI 上看得到，易誤認為已設定；未被安全政策綁定則不對流量生效"
 
   - id: "6.2"
     simple: true
@@ -97,7 +99,8 @@ checks:
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/virus/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
     pass: "安全政策已綁定 antivirus profile（或 profile group）"
-    fail: "無任何安全政策綁定 antivirus profile —— 流量未經防毒檢查"
+    fail: "無任何安全政策綁定 antivirus profile（含 profile group）—— 流量未經防毒檢查"
+    note: "內建或自訂 profile 存在與否，與「是否套用到流量」無關——未綁定政策即不生效"
 
   - id: "6.3"
     simple: true
@@ -107,6 +110,7 @@ checks:
     xpath: "/config/devices/entry/vsys/entry/profiles/spyware/entry/@name"
     pass: "已定義自訂 anti-spyware profile（請確認嚴重性規則動作為 block/reset）"
     fail: "未定義自訂 anti-spyware profile（僅用預設，未強制 block）"
+    note: "PAN-OS 內建 predefined profile（default/strict）在 UI 上看得到，易誤認為已設定；未被安全政策綁定則不對流量生效"
 
   # CIS 6.6 Vulnerability Protection Profile set to block（注意：此為 NICS/新版 CIS 編號，
   # 舊版此號為 anti-spyware policy binding，勿混淆）
@@ -118,6 +122,7 @@ checks:
     xpath: "/config/devices/entry/vsys/entry/profiles/vulnerability/entry/@name"
     pass: "已定義自訂 vulnerability protection profile（請確認 critical/high 動作為 block/reset）"
     fail: "未定義自訂 vulnerability protection profile（僅用預設，未強制 block）"
+    note: "PAN-OS 內建 predefined profile（default/strict）在 UI 上看得到，易誤認為已設定；未被安全政策綁定則不對流量生效"
 
   - id: "6.7"
     simple: true
@@ -126,7 +131,8 @@ checks:
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/vulnerability/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
     pass: "安全政策已綁定 vulnerability protection profile（或 profile group）"
-    fail: "無任何安全政策綁定 vulnerability protection profile —— 漏洞攻擊未被阻擋"
+    fail: "無任何安全政策綁定 vulnerability protection profile（含 profile group）—— 漏洞攻擊未被阻擋"
+    note: "內建或自訂 profile 存在與否，與「是否套用到流量」無關——未綁定政策即不生效"
 
   # CIS 6.11 all HTTP Header Logging options enabled
   - id: "6.11"
@@ -137,3 +143,6 @@ checks:
     xpath: "/config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-xff | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-user-agent | /config/devices/entry/vsys/entry/profiles/url-filtering/entry/log-http-hdr-referer"
     pass: "URL filtering profile 已啟用 HTTP header logging（XFF/User-Agent/Referer）"
     fail: "URL filtering profile 未啟用 HTTP header logging 選項（TWGCB-03-005-0041）"
+    # profile 本身可能已存在且有其他設定，只是缺這三個 logging 選項。UI 上該 profile 看起來
+    # 「有設定」，易誤判為本項已達成（2026-08 實機核對發現）。
+    note: "profile 若已存在僅缺此選項，UI 仍會顯示為已設定——請確認 XFF/User-Agent/Referer 三項是否勾選"

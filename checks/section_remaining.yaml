@@ -24,14 +24,23 @@ checks:
     level: 1
     type: manual
     detail: "需人工確認所有 interface-management-profile 的 http/telnet 未啟用"
+    # 實務常見：明文管理協定未關，但改以 permitted-ip 限制來源達等效防護。
+    # 不改變 CIS 判定（條文仍未滿足），僅在報告附註脈絡，避免誤讀為完全無防護。
+    mitigation:
+      xpath: "/config/devices/entry/network/profiles/interface-management-profile/entry/permitted-ip/entry/@name"
+      found: "管理設定檔已限制來源 IP（風險降低，但 CIS 仍要求停用明文協定）"
   - id: "1.6.1"
     simple: true
     name: "Ensure Verify Update Server Identity is enabled（驗證更新伺服器身分）"
     level: 1
-    type: equals
+    # 此欄位 PAN-OS 預設即啟用，未顯式設定時 XML 無此節點。官方 skillet 判斷為 != "no"，
+    # 沿用 equals=="yes" 會把「未設定=預設啟用」誤報 FAIL（2026-08 實機 UI 核對發現）。
+    type: not_equals
     xpath: "/config/devices/entry/deviceconfig/system/server-verification/text()"
-    expected: "yes"
-    fail_missing: "未設定驗證更新伺服器身分（TWGCB-03-005-0019）"
+    unexpected: "no"
+    pass_missing: "未顯式設定（PAN-OS 預設啟用，視為合規；建議登入 UI 複核）"
+    pass: "已啟用驗證更新伺服器身分"
+    fail: "顯式停用驗證更新伺服器身分（TWGCB-03-005-0019）"
   - id: "1.6.3"
     name: "遠端存取 VPN 憑證有效"
     level: 2
@@ -91,7 +100,8 @@ checks:
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/wildfire-analysis/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
     pass: "安全政策已綁定 WildFire Analysis profile（或 profile group）"
-    fail: "無任何安全政策綁定 WildFire Analysis profile —— 未知檔案未送 WildFire 分析"
+    fail: "無任何安全政策綁定 WildFire Analysis profile（含 profile group）—— 未知檔案未送 WildFire 分析"
+    note: "內建或自訂 profile 存在與否，與「是否套用到流量」無關——未綁定政策即不生效"
   - id: "5.4"
     name: "解密內容轉送 WildFire"
     level: 2
@@ -124,6 +134,7 @@ checks:
     xpath: "/config/devices/entry/vsys/entry/profiles/spyware/entry/botnet-domains/sinkhole/ipv4-address | /config/devices/entry/vsys/entry/profiles/spyware/entry/botnet-domains/sinkhole/ipv6-address"
     pass: "anti-spyware profile 已設定 DNS sinkhole IP"
     fail: "anti-spyware profile 未設定 DNS sinkholing（TWGCB-03-005-0035）"
+    note: "PAN-OS 內建 anti-spyware profile 帶有預設 sinkhole 位址，UI 上易誤認為已設定；本項只看自訂 profile 是否明確配置"
   # CIS 6.5 secure anti-spyware profile applied
   - id: "6.5"
     simple: true
@@ -132,7 +143,8 @@ checks:
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/spyware/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
     pass: "安全政策已綁定 anti-spyware profile（或 profile group）"
-    fail: "無任何安全政策綁定 anti-spyware profile —— 間諜軟體/C2 未被偵測"
+    fail: "無任何安全政策綁定 anti-spyware profile（含 profile group）—— 間諜軟體/C2 未被偵測"
+    note: "內建或自訂 profile 存在與否，與「是否套用到流量」無關——未綁定政策即不生效"
   # 舊版 6.6（anti-spyware policy binding）已由新版 6.5 涵蓋；新版 6.6 = Vulnerability
   # Protection set to block，定義於 section2to6_advanced.yaml。此處不重複標 simple。
   - id: "6.6-legacy"
@@ -163,7 +175,8 @@ checks:
     type: exists
     xpath: "/config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/profiles/url-filtering/member | /config/devices/entry/vsys/entry/rulebase/security/rules/entry/profile-setting/group/member"
     pass: "安全政策已綁定 URL filtering profile（或 profile group）"
-    fail: "無任何安全政策綁定 URL filtering profile —— 惡意/不當網址未被過濾"
+    fail: "無任何安全政策綁定 URL filtering profile（含 profile group）—— 惡意/不當網址未被過濾"
+    note: "內建或自訂 profile 存在與否，與「是否套用到流量」無關——未綁定政策即不生效；URL filtering profile 本身可能已定義，仍須綁定政策才作用"
   - id: "6.13"
     name: "對外政策啟用安全 URL 過濾"
     level: 2
@@ -183,6 +196,8 @@ checks:
     xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/flood/tcp-syn/syn-cookies"
     pass: "Zone Protection 的 SYN Flood 動作設為 SYN Cookies"
     fail: "SYN Flood 動作未設為 SYN Cookies（多為 RED；SYN Cookies 較能抗偽造來源 SYN 洪水）"
+    # Zone Protection profile 可能已存在且已綁 zone，只是 flood 動作維持預設 RED。
+    note: "Zone Protection profile 若已存在，UI 會顯示為已設定；本項只看 SYN Flood 動作是否為 SYN Cookies"
   # CIS 6.17 zones have Zone Protection Profiles with Reconnaissance Protection
   - id: "6.17"
     simple: true
@@ -192,6 +207,8 @@ checks:
     xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/scan/entry"
     pass: "Zone Protection Profile 已設定 Reconnaissance Protection（scan）"
     fail: "Zone Protection Profile 未設定偵查保護（port/host scan 偵測，TWGCB-03-005-0022）"
+    # 常見情形：profile 存在且已綁 zone，但 Reconnaissance Protection 分頁維持預設未啟用。
+    note: "Zone Protection profile 可能已存在並綁定 zone，UI 顯示為已設定；本項只看 Reconnaissance Protection 子項"
   # CIS 6.18 zones have Zone Protection Profiles that drop specially crafted packets
   - id: "6.18"
     simple: true
@@ -201,6 +218,8 @@ checks:
     xpath: "/config/devices/entry/network/profiles/zone-protection-profile/entry/packet-based-attack-protection"
     pass: "Zone Protection Profile 已設定丟棄異常封包（packet-based-attack-protection）"
     fail: "Zone Protection Profile 未設定丟棄特製異常封包（TWGCB-03-005-0023）"
+    # 同 6.17：profile 存在不等於此子項已設，Packet Based Attack Protection 分頁多維持預設。
+    note: "Zone Protection profile 可能已存在並綁定 zone，UI 顯示為已設定；本項只看 Packet Based Attack Protection 子項"
   - id: "6.19"
     name: "Zone Protection 丟棄異常封包"
     level: 2

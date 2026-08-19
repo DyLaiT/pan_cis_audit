@@ -42,6 +42,10 @@ checks:
     level: 1
     type: manual
     detail: "確認 deviceconfig/system/service 的 disable-http/disable-telnet=yes（見 pan_audit 2.1）"
+    # 同 1.2.4：管理介面明文協定未關時，permitted-ip 為常見補償控制。附註不改變判定。
+    mitigation:
+      xpath: "/config/devices/entry/deviceconfig/system/permitted-ip/entry/@name"
+      found: "管理介面已限制來源 IP（風險降低，但 CIS 仍要求停用 HTTP/Telnet）"
 
   - id: "1.2.5"
     name: "管理介面有效憑證"

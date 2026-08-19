@@ -107,6 +107,107 @@ def test_simple_subset_is_marked():
     assert len(simple) < len(allc)
 
 
+# ---- note（判讀脈絡附註）----
+def test_note_appended_on_fail():
+    """FAIL 項帶 note → 說明附上判讀脈絡。"""
+    t = _tree('<config><a/></config>')
+    c = {"type": "exists", "xpath": "/config/a/b", "fail": "未設定",
+         "note": "UI 可能因預設顯示為已設定"}
+    st, detail, _ = run_check(t, c)
+    assert st == "FAIL"
+    assert "UI 可能因預設顯示為已設定" in detail
+
+
+def test_note_not_applied_on_pass():
+    """PASS 項不加 note（已合規，無須提醒誤判風險）。"""
+    t = _tree('<config><a><b>x</b></a></config>')
+    c = {"type": "exists", "xpath": "/config/a/b",
+         "note": "UI 可能因預設顯示為已設定"}
+    st, detail, _ = run_check(t, c)
+    assert st == "PASS"
+    assert "UI 可能因預設顯示為已設定" not in detail
+
+
+def test_note_and_mitigation_coexist():
+    """note 與 mitigation 同時存在時皆附加，順序為 note 在前。"""
+    t = _tree('<config><mgmt><permitted-ip><entry name="a"/></permitted-ip></mgmt></config>')
+    c = {"type": "exists", "xpath": "/config/a/b", "fail": "未設定",
+         "note": "預設提醒",
+         "mitigation": {"xpath": "/config/mgmt/permitted-ip/entry/@name", "found": "已限來源 IP"}}
+    _, detail, _ = run_check(t, c)
+    assert "註：預設提醒" in detail
+    assert "補償控制：已限來源 IP" in detail
+    assert detail.index("註：") < detail.index("補償控制：")
+
+
+# ---- not_equals（預設即啟用型欄位）----
+def test_not_equals_missing_is_pass():
+    """節點不存在 = 維持 PAN-OS 預設啟用 → PASS（這是 1.6.1 誤報的修正點）。"""
+    t = _tree('<config><sys/></config>')
+    c = {"type": "not_equals", "xpath": "/config/sys/server-verification/text()",
+         "unexpected": "no"}
+    st, _, _ = run_check(t, c)
+    assert st == "PASS"
+
+
+def test_not_equals_explicit_no_is_fail():
+    """顯式設為停用值 → FAIL。"""
+    t = _tree('<config><sys><server-verification>no</server-verification></sys></config>')
+    c = {"type": "not_equals", "xpath": "/config/sys/server-verification/text()",
+         "unexpected": "no"}
+    st, _, _ = run_check(t, c)
+    assert st == "FAIL"
+
+
+def test_not_equals_explicit_yes_is_pass():
+    """顯式設為啟用值 → PASS。"""
+    t = _tree('<config><sys><server-verification>yes</server-verification></sys></config>')
+    c = {"type": "not_equals", "xpath": "/config/sys/server-verification/text()",
+         "unexpected": "no"}
+    st, _, _ = run_check(t, c)
+    assert st == "PASS"
+
+
+# ---- mitigation（補償控制附註）----
+def test_mitigation_note_appended_on_manual():
+    """MANUAL 項命中補償控制 XPath → 說明帶附註，狀態不變。"""
+    t = _tree('<config><mgmt><permitted-ip><entry name="a"/></permitted-ip></mgmt></config>')
+    c = {"type": "manual", "detail": "需人工確認",
+         "mitigation": {"xpath": "/config/mgmt/permitted-ip/entry/@name", "found": "已限來源 IP"}}
+    st, detail, _ = run_check(t, c)
+    assert st == "MANUAL"
+    assert "已限來源 IP" in detail
+
+
+def test_mitigation_absent_no_note():
+    """補償控制 XPath 未命中 → 不加附註。"""
+    t = _tree('<config><mgmt/></config>')
+    c = {"type": "manual", "detail": "需人工確認",
+         "mitigation": {"xpath": "/config/mgmt/permitted-ip/entry/@name", "found": "已限來源 IP"}}
+    _, detail, _ = run_check(t, c)
+    assert "已限來源 IP" not in detail
+
+
+def test_mitigation_not_applied_on_pass():
+    """PASS 項不套補償控制附註（已合規，無須補充脈絡）。"""
+    t = _tree('<config><a><b>x</b></a><mgmt><permitted-ip><entry name="a"/></permitted-ip></mgmt></config>')
+    c = {"type": "exists", "xpath": "/config/a/b",
+         "mitigation": {"xpath": "/config/mgmt/permitted-ip/entry/@name", "found": "已限來源 IP"}}
+    st, detail, _ = run_check(t, c)
+    assert st == "PASS"
+    assert "已限來源 IP" not in detail
+
+
+def test_mitigation_does_not_change_status():
+    """FAIL 項即使有補償控制，狀態仍為 FAIL（CIS 條文未滿足）。"""
+    t = _tree('<config><mgmt><permitted-ip><entry name="a"/></permitted-ip></mgmt></config>')
+    c = {"type": "exists", "xpath": "/config/a/b",
+         "mitigation": {"xpath": "/config/mgmt/permitted-ip/entry/@name", "found": "已限來源 IP"}}
+    st, detail, _ = run_check(t, c)
+    assert st == "FAIL"
+    assert "已限來源 IP" in detail
+
+
 def test_simple_ids_unique():
     from pan_cis_audit import load_checks
     ids = [c["id"] for c in load_checks(simple=True)]
