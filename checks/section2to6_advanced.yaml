@@ -43,6 +43,12 @@ checks:
     xpath: "/config/devices/entry/deviceconfig/system/update-schedule/anti-virus/recurring"
     pass: "已設防毒更新排程"
     fail: "未設防毒更新排程（TWGCB-03-005-0030；病毒碼過期）"
+    # Dynamic Updates 頁面上 Antivirus 與 Apps and Threats 並列，兩者排程時間常相同，
+    # 現場易把 threats 的排程看成防毒的。列出同層實際節點可直接消除此誤判。
+    sibling_hint:
+      parent_xpath: "/config/devices/entry/deviceconfig/system/update-schedule"
+      template: "同層 update-schedule 實際只有：{found}"
+      empty: "update-schedule 為空（無任何更新排程）"
 
   - id: "4.2"
     simple: true

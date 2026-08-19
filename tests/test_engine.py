@@ -107,6 +107,36 @@ def test_simple_subset_is_marked():
     assert len(simple) < len(allc)
 
 
+# ---- sibling_hint（同層診斷線索）----
+def test_sibling_hint_lists_existing_siblings():
+    """FAIL 時列出同層實際存在的節點，消除「UI 看到別項就以為工具判錯」的混淆。"""
+    t = _tree('<config><us><threats><r/></threats></us></config>')
+    c = {"type": "exists", "xpath": "/config/us/anti-virus/recurring", "fail": "未設定",
+         "sibling_hint": {"parent_xpath": "/config/us", "template": "同層只有：{found}"}}
+    st, detail, _ = run_check(t, c)
+    assert st == "FAIL"
+    assert "threats" in detail
+
+
+def test_sibling_hint_empty_parent():
+    """父節點存在但無子節點 → 回 empty 訊息。"""
+    t = _tree('<config><us/></config>')
+    c = {"type": "exists", "xpath": "/config/us/anti-virus", "fail": "未設定",
+         "sibling_hint": {"parent_xpath": "/config/us", "empty": "無任何排程"}}
+    _, detail, _ = run_check(t, c)
+    assert "無任何排程" in detail
+
+
+def test_sibling_hint_not_applied_on_pass():
+    """PASS 不需要診斷線索。"""
+    t = _tree('<config><us><anti-virus/><threats/></us></config>')
+    c = {"type": "exists", "xpath": "/config/us/anti-virus",
+         "sibling_hint": {"parent_xpath": "/config/us", "template": "同層：{found}"}}
+    st, detail, _ = run_check(t, c)
+    assert st == "PASS"
+    assert "threats" not in detail
+
+
 # ---- note（判讀脈絡附註）----
 def test_note_appended_on_fail():
     """FAIL 項帶 note → 說明附上判讀脈絡。"""

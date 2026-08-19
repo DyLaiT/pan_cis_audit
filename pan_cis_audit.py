@@ -147,11 +147,38 @@ def _mitigation(tree, c):
     return m.get("missing", "")
 
 
+def _sibling_hint(tree, c):
+    """FAIL 時列出目標節點的「同層兄弟」，指出實際存在什麼。
+
+    動機：update-schedule 底下同時有 anti-virus / threats / wildfire，UI 上並列顯示。
+    只報「未設防毒更新排程」時，稽核者看到 UI 有個 05:00 排程就會誤以為工具判錯——
+    實際上那是 threats 的排程。帶出「同層已有 threats(L990)，但無 anti-virus」能直接
+    消除這個混淆（2026-08 實機核對發現）。
+
+    YAML 宣告 `sibling_hint.parent_xpath`（父節點），列出其子節點名稱與行號。
+    """
+    h = c.get("sibling_hint")
+    if not h:
+        return ""
+    parent = h.get("parent_xpath", "")
+    if not parent:
+        return ""
+    hits = xpath_list(tree, parent)
+    if not hits or isinstance(hits[0], str):
+        return ""
+    found = [(ch.tag, getattr(ch, 'sourceline', None)) for ch in hits[0]]
+    if not found:
+        return h.get("empty", "同層無任何設定")
+    desc = "、".join(f"{tag}(L{ln})" if ln else tag for tag, ln in found)
+    return h.get("template", "同層已有：{found}").format(found=desc)
+
+
 def run_check(tree, c):
     """依 check 定義跑檢查，回 (status, detail, evidence)。
 
     在核心判斷之上疊加兩種判讀附註（僅非 PASS 項需要，PASS 已合規）：
       - `note`：無條件附加的判讀脈絡（如「UI 可能因 PAN-OS 預設而顯示為已設定」）
+      - `sibling_hint`：僅 FAIL 時，列出同層實際存在的節點（見 _sibling_hint）
       - `mitigation`：條件式，補償控制 XPath 命中才附加（見 _mitigation）
     兩者皆**不改變** PASS/FAIL 判定，只補充報告可讀性。
     """
@@ -160,6 +187,10 @@ def run_check(tree, c):
         note = c.get("note")
         if note:
             detail = f"{detail}｜註：{note}"
+        if st == "FAIL":
+            sib = _sibling_hint(tree, c)
+            if sib:
+                detail = f"{detail}｜{sib}"
         mit = _mitigation(tree, c)
         if mit:
             detail = f"{detail}｜補償控制：{mit}"
